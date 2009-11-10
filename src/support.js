@@ -90,7 +90,20 @@
 		document.body.removeChild( div ).style.display = 'none';
 		div = null;
 	});
-
+	
+	var eventSupported = function(eventName) { 
+		var el = document.createElement('div'); 
+		eventName = 'on' + eventName; 
+		var isSupported = (eventName in el); 
+		if (!isSupported) { 
+			el.setAttribute(eventName, 'return;'); 
+			isSupported = typeof el[eventName] == 'function'; 
+		} 
+		el = null; 
+		return isSupported; 
+	} 
+	jQuery.support.submitBubbles = eventSupported("submit")
+	
 	// release memory in IE
 	root = script = div = all = a = null;
 })();
