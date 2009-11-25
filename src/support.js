@@ -90,19 +90,20 @@
 		document.body.removeChild( div ).style.display = 'none';
 		div = null;
 	});
-	
+	//technique from Kangax http://thinkweb2.com/projects/prototype/detecting-event-support-without-browser-sniffing/
 	var eventSupported = function(eventName) { 
 		var el = document.createElement('div'); 
 		eventName = 'on' + eventName; 
 		var isSupported = (eventName in el); 
 		if (!isSupported) { 
 			el.setAttribute(eventName, 'return;'); 
-			isSupported = typeof el[eventName] == 'function'; 
+			isSupported = typeof el[eventName] === 'function'; 
 		} 
 		el = null; 
 		return isSupported; 
-	} 
-	jQuery.support.submitBubbles = eventSupported("submit")
+	};
+	
+	jQuery.support.submitBubbles = eventSupported("submit");
 	
 	// release memory in IE
 	root = script = div = all = a = null;

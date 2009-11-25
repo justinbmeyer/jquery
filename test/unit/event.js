@@ -820,8 +820,6 @@ test("live with submit", function() {
 		equals(count2,2);
 	}
 	
-	equals(2, count);
-	
 	jQuery("#testForm").die("submit");
 	jQuery("body").die("submit");
 });

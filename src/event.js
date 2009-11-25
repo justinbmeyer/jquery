@@ -155,7 +155,7 @@ jQuery.event = {
 						}
 
 						if ( special.remove ) {
-							special.remove.call( elem, namespaces , fn);
+							special.remove.call( elem, namespaces, fn);
 						}
 
 						// remove generic event handler if no more handlers exist
@@ -407,10 +407,10 @@ jQuery.event = {
 		live: {
 			add: function( proxy, data, namespaces, live ) {
 				jQuery.extend( proxy, data || {} );
-				if(data.live == "submit" && !jQuery.support.submitBubbles){ 
+				if( data.live === "submit" && !jQuery.support.submitBubbles ) { 
 					jQuery.event.special.live.special[data.live].apply(this,arguments) 
 					proxy.guid += data.selector + data.live; 
-				}else{ 
+				} else { 
 					proxy.guid += data.selector + data.live; 
 					jQuery.event.add( this, data.live, liveHandler, data ); 
 				}    
@@ -557,20 +557,20 @@ jQuery.each({
 		special = event.special.live.special, 
 		handle  = event.handle, 
 		beforeFilter = { 
-			click: function(e){ 
-				return jQuery(e.target).filter(":submit, :image").length 
+			click: function(e) { 
+				return jQuery(e.target).is(":submit, :image").length ;
 			}, 
-			keypress : function(e){ 
-				return jQuery(e.target).filter(":text, :password").length && e.keyCode == 13 
+			keypress : function(e) { 
+				return jQuery(e.target).is(":text, :password").length && e.keyCode === 13 ;
 			} 
 		}; 
 		special.submit = function(proxy, data, namespaces, live ) { 
-			data.beforeFilter = beforeFilter 
-			proxy.altLive = ["click","keypress"] 
+			data.beforeFilter = beforeFilter ;
+			proxy.altLive = ["click","keypress"] ;
 			proxy.altLiveGUIDs = { 
-				click :    proxy.guid+data.selector+"special.click", 
-				keypress : proxy.guid+data.selector+"special.keypress" 
-			}
+				click:    proxy.guid + data.selector + "special.click", 
+				keypress: proxy.guid + data.selector + "special.keypress" 
+			};
 			jQuery.event.add( this, "click", liveHandler, data ); 
 			live[proxy.altLiveGUIDs.click] = true; 
 			jQuery.event.add( this, "keypress", liveHandler, data ); 
@@ -751,12 +751,14 @@ function liveHandler( event ) {
 	var stop = true, elems = [], args = arguments;
 
 	jQuery.each( jQuery.data( this, "events" ).live || [], function( i, fn ) {
-		//if ( fn.live === event.type ) {
 		if (jQuery.isFunction(fn) &&  fn.live === event.type || 
-			(fn.altLive && jQuery.inArray(event.type, fn.altLive)>=-1  )  ) {
-			var data= fn.data; 
-			if(data.beforeFilter && data.beforeFilter[event.type] && !data.beforeFilter[event.type](event)) 
-						return;
+			(fn.altLive && jQuery.inArray(event.type, fn.altLive) > -1  )  ) {
+			var data = fn.data; 
+			if(data.beforeFilter && data.beforeFilter[event.type] && 
+			   !data.beforeFilter[event.type](event)) {
+				return; 
+			}
+						
 			var elem = jQuery( event.target ).closest( fn.selector, event.currentTarget )[0],
 				related;
 			if ( elem ) {
@@ -766,7 +768,7 @@ function liveHandler( event ) {
 				}
 
 				if ( !related || related !== elem ) {
-					elems.push({ elem: elem, fn: fn });
+					elems.push({ elem: elem, fn: fn, closer: jQuery.lastCloser });
 				}
 			}
 		}
