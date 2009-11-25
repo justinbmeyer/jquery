@@ -310,7 +310,7 @@ test("isXMLDoc - XML", function() {
 }
 
 test("jQuery('html')", function() {
-	expect(13);
+	expect(15);
 
 	reset();
 	jQuery.foo = false;
@@ -339,6 +339,9 @@ test("jQuery('html')", function() {
 	ok( j.length >= 2, "Check node,textnode,comment creation (some browsers delete comments)" );
 
 	ok( !jQuery("<option>test</option>")[0].selected, "Make sure that options are auto-selected #2050" );
+
+	ok( jQuery("<div></div>")[0], "Create a div with closing tag." );
+	ok( jQuery("<table></table>")[0], "Create a table with closing tag." );
 });
 
 test("jQuery('html', context)", function() {
@@ -497,7 +500,7 @@ test("index(Object|String|undefined)", function() {
 });
 
 test("jQuery.merge()", function() {
-	expect(6);
+	expect(8);
 
 	var parse = jQuery.merge;
 
@@ -511,10 +514,14 @@ test("jQuery.merge()", function() {
 
 	// Fixed at [5998], #3641
 	same( parse([-2,-1], [0,1,2]), [-2,-1,0,1,2], "Second array including a zero (falsy)");
+	
+	// After fixing #5527
+	same( parse([], [null, undefined]), [null, undefined], "Second array including null and undefined values");
+	same( parse({length:0}, [1,2]), {length:2, 0:1, 1:2}, "First array like");
 });
 
 test("jQuery.extend(Object, Object)", function() {
-	expect(23);
+	expect(25);
 
 	var settings = { xnumber1: 5, xnumber2: 7, xstring1: "peter", xstring2: "pan" },
 		options = { xnumber2: 1, xstring2: "x", xxx: "newstring" },
@@ -550,12 +557,20 @@ test("jQuery.extend(Object, Object)", function() {
 	same( empty.foo, optionsWithDate.foo, "Dates copy correctly" );
 
 	var myKlass = function() {};
+	var customObject = new myKlass();
+	var optionsWithCustomObject = { foo: { date: customObject } };
+	empty = {};
+	jQuery.extend(true, empty, optionsWithCustomObject);
+	ok( empty.foo && empty.foo.date === customObject, "Custom objects copy correctly (no methods)" );
+	
 	// Makes the class a little more realistic
 	myKlass.prototype = { someMethod: function(){} };
 	empty = {};
-	var optionsWithCustomObject = { foo: { date: new myKlass } };
 	jQuery.extend(true, empty, optionsWithCustomObject);
-	same( empty.foo, optionsWithCustomObject.foo, "Custom objects copy correctly" );
+	ok( empty.foo && empty.foo.date === customObject, "Custom objects copy correctly" );
+	
+	var ret = jQuery.extend(true, { foo: 4 }, { foo: new Number(5) } );
+	ok( ret.foo == 5, "Wrapped numbers copy correctly" );
 
 	var nullUndef;
 	nullUndef = jQuery.extend({}, options, { xnumber2: null });

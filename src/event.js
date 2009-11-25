@@ -135,7 +135,7 @@ jQuery.event = {
 					var namespaces = type.split(".");
 					type = namespaces.shift();
 					var all = !namespaces.length,
-						namespace = new RegExp("(^|\\.)" + namespaces.slice(0).sort().join(".*\\.") + "(\\.|$)"),
+						namespace = new RegExp("(^|\\.)" + namespaces.slice(0).sort().join("\\.(?:.*\\.)?") + "(\\.|$)"),
 						special = this.special[ type ] || {};
 
 					if ( events[ type ] ) {
@@ -294,7 +294,7 @@ jQuery.event = {
 		// Cache this now, all = true means, any handler
 		all = !namespaces.length && !event.exclusive;
 
-		var namespace = new RegExp("(^|\\.)" + namespaces.slice(0).sort().join(".*\\.") + "(\\.|$)");
+		var namespace = new RegExp("(^|\\.)" + namespaces.slice(0).sort().join("\\.(?:.*\\.)?") + "(\\.|$)");
 
 		handlers = ( jQuery.data(this, "events") || {} )[ event.type ];
 
@@ -695,13 +695,14 @@ jQuery.fn.extend({
 
 		return this.click( jQuery.event.proxy( fn, function( event ) {
 			// Figure out which function to execute
-			this.lastToggle = ( this.lastToggle || 0 ) % i;
+			var lastToggle = ( jQuery.data( this, 'lastToggle' + fn.guid ) || 0 ) % i;
+			jQuery.data( this, 'lastToggle' + fn.guid, lastToggle + 1 );
 
 			// Make sure that clicks stop
 			event.preventDefault();
 
 			// and execute the function
-			return args[ this.lastToggle++ ].apply( this, arguments ) || false;
+			return args[ lastToggle ].apply( this, arguments ) || false;
 		}));
 	},
 
@@ -857,10 +858,15 @@ function bindReady() {
 			}
 		});
 
-		// If IE and not an iframe
+		// If IE and not a frame
 		// continually check to see if the document is ready
-		// NOTE: DO NOT CHANGE TO ===, FAILS IN IE.
-		if ( document.documentElement.doScroll && window == window.top ) (function() {
+		var toplevel = false;
+
+		try {
+			toplevel = window.frameElement == null;
+		} catch(e){}
+
+		if ( document.documentElement.doScroll && toplevel ) (function() {
 			if ( jQuery.isReady ) {
 				return;
 			}

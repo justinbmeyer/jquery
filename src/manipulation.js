@@ -4,7 +4,7 @@ var rinlinejQuery = / jQuery\d+="(?:\d+|null)"/g,
 	rselfClosing = /^(?:abbr|br|col|img|input|link|meta|param|hr|area|embed)$/i,
 	rtagName = /<([\w:]+)/,
 	rtbody = /<tbody/i,
-	rhtml = /</,
+	rhtml = /<|&\w+;/,
 	fcloseTag = function(all, front, tag){
 		return rselfClosing.test(tag) ?
 			all :
@@ -31,19 +31,21 @@ if ( !jQuery.support.htmlSerialize ) {
 
 jQuery.fn.extend({
 	text: function( text ) {
-		if ( typeof text !== "object" && text !== undefined )
+		if ( typeof text !== "object" && text !== undefined ) {
 			return this.empty().append( (this[0] && this[0].ownerDocument || document).createTextNode( text ) );
+		}
 
 		var ret = "";
 
-		jQuery.each( text || this, function(){
-			jQuery.each( this.childNodes, function(){
-				if ( this.nodeType !== 8 ) {
-					ret += this.nodeType !== 1 ?
-						this.nodeValue :
-						jQuery.fn.text( [ this ] );
-				}
-			});
+		jQuery.each( this, function() {
+			// Get the text from text nodes and CDATA nodes
+			if ( this.nodeType === 3 || this.nodeType === 4 ) {
+				ret += this.nodeValue;
+
+			// Traverse everything else, except comment nodes
+			} else if ( this.nodeType !== 8 ) {
+				ret += jQuery.fn.text.call( this.childNodes );
+			}
 		});
 
 		return ret;

@@ -4,9 +4,12 @@ var bareObj = function(value) { return value; };
 var functionReturningObj = function(value) { return (function() { return value; }); };
 
 test("text()", function() {
-	expect(1);
+	expect(2);
 	var expected = "This link has class=\"blog\": Simon Willison's Weblog";
 	equals( jQuery('#sap').text(), expected, 'Check for merged text of more then one element.' );
+
+	// Check serialization of text values
+	equals( jQuery(document.createTextNode("foo")).text(), "foo", "Text node was retreived from .text()." );
 });
 
 var testWrap = function(val) {
@@ -643,7 +646,7 @@ test("val(Function)", function() {
 })
 
 var testHtml = function(valueObj) {
-	expect(17);
+	expect(20);
 
 	window.debug = true;
 
@@ -675,6 +678,12 @@ var testHtml = function(valueObj) {
 	var $div = jQuery('<div />');
 	equals( $div.html(valueObj( 5 )).html(), '5', 'Setting a number as html' );
 	equals( $div.html(valueObj( 0 )).html(), '0', 'Setting a zero as html' );
+
+	var $div2 = jQuery('<div/>'), insert = "&lt;div&gt;hello1&lt;/div&gt;";
+	equals( $div2.html(insert).html(), insert, "Verify escaped insertion." );
+	equals( $div2.html("x" + insert).html(), "x" + insert, "Verify escaped insertion." );
+	equals( $div2.html(" " + insert).html(), " " + insert, "Verify escaped insertion." );
+
 
 	reset();
 
