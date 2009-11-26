@@ -104,7 +104,7 @@
 	};
 	
 	jQuery.support.submitBubbles = eventSupported("submit");
-	
+	jQuery.support.changeBubbles = eventSupported("change")
 	// release memory in IE
 	root = script = div = all = a = null;
 })();

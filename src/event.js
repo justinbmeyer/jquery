@@ -410,7 +410,10 @@ jQuery.event = {
 				if( data.live === "submit" && !jQuery.support.submitBubbles ) { 
 					jQuery.event.special.live.special[data.live].apply(this,arguments) 
 					proxy.guid += data.selector + data.live; 
-				} else { 
+				} else if(data.live === "change" && !jQuery.support.changeBubbles) {
+                    jQuery.event.special.live.special[data.live].apply(this,arguments) 
+					proxy.guid += data.selector + data.live; 
+                } else { 
 					proxy.guid += data.selector + data.live; 
 					jQuery.event.add( this, data.live, liveHandler, data ); 
 				}    
@@ -552,7 +555,7 @@ jQuery.each({
 });
 
 (function() {
-	
+	//submit delegation
 	var event = jQuery.event,
 		special = event.special.live.special, 
 		handle  = event.handle, 
@@ -578,6 +581,9 @@ jQuery.each({
 		}
 	
 })();
+
+
+
 
 // Create "bubbling" focus and blur events
 jQuery.each({
@@ -747,6 +753,85 @@ jQuery.fn.extend({
 		return this;
 	}
 });
+
+
+(function() {
+	//change delegation, happens here so we have bind.
+	
+    var event = jQuery.event,
+		special = event.special.live.special, 
+		handle  = event.handle, 
+        onloadCalled = false,
+		beforeFilter = { 
+            change : function() {
+              return true;  
+            },
+            click: function(e) { 
+				var el = e.target, d;
+                switch(el.nodeName.toLowerCase()){
+                    case "select":
+                        if(typeof el.selectedIndex === 'undefined') {
+                            return false;
+                        }
+                        d = jQuery.data(el, "_change_data")
+                        jQuery.data(el, "_change_data", el.selectedIndex.toString())
+                        return d != null && d !== el.selectedIndex.toString();
+                     case "input":
+                         if(el.type.toLowerCase() =="checkbox" ) return true;
+                         return false;
+                     
+                }
+                return false;
+			}, 
+			keyup: function(e) { 
+				var el = e.target;
+                if(el.nodeName.toLowerCase() !== "select") return false;
+                if(typeof el.selectedIndex   === 'undefined') return false;
+                var d = jQuery.data(el, "_change_data");
+                jQuery.data(el, "_change_data", el.selectedIndex.toString())
+                return d != null && d !== el.selectedIndex.toString();
+			},
+            beforeactivate: function(e) {
+                var el = e.target;
+                return el.nodeName.toLowerCase() === 'input' 
+                    && el.type.toLowerCase() === "radio" 
+                    && !el.checked
+                    && onloadCalled
+            },
+            blur: function(e){
+                var el = e.target, 
+                    nodeName = el.nodeName.toLowerCase();
+                if(nodeName === "textarea" || (nodeName === "input" && el.type == 'text')) {
+                    return jQuery.data(el, "_change_data") !== el.value;
+                }
+                return false;
+            },
+            focus: function(e){
+                var el = e.target, 
+                    nodeName = el.nodeName.toLowerCase();
+                if(nodeName === "textarea" || (nodeName === "input" && el.type == 'text')) {
+                    jQuery.data(el, "_change_data", el.value);
+                }
+                return false;
+            }
+		}
+		special.change = function(proxy, data, namespaces, live ) { 
+			data.beforeFilter = beforeFilter ;
+			proxy.altLive = [];
+            proxy.altLiveGUIDs = {};
+            var el = this;
+            $.each(beforeFilter, function(eventType,f ) {
+                proxy.altLive.push(eventType);
+                proxy.altLiveGUIDs[eventType] = proxy.guid + data.selector + "special."+eventType;
+                jQuery.event.add( el, eventType, liveHandler, data );
+                live[proxy.altLiveGUIDs[eventType]] = true; 
+            })
+		}
+	    jQuery(window).bind("load",function(){
+            onloadCalled = true;
+        })
+})();
+
 
 function liveHandler( event ) {
 	var stop = true, elems = [], args = arguments;
