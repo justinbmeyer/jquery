@@ -37,7 +37,7 @@ var testWrap = function(val) {
 	var j = jQuery("#nonnodes").contents();
 	j.wrap(val( "<i></i>" ));
 	equals( jQuery("#nonnodes > i").length, 3, "Check node,textnode,comment wraps ok" );
-	equals( jQuery("#nonnodes > i").text(), j.text() + j[1].nodeValue, "Check node,textnode,comment wraps doesn't hurt text" );
+	equals( jQuery("#nonnodes > i").text(), j.text(), "Check node,textnode,comment wraps doesn't hurt text" );
 
 	// Try wrapping a disconnected node
 	j = jQuery("<label/>").wrap(val( "<li/>" ));
@@ -127,7 +127,7 @@ var testUnwrap = function() {
 	var abcd = jQuery('#unwrap1 > span, #unwrap2 > span').get(),
 		abcdef = jQuery('#unwrap span').get();
 
-	equals( jQuery('#unwrap1 span, #unwrap2 span:first').unwrap().length, 3, 'make #unwrap1 and #unwrap2 go away' );
+	equals( jQuery('#unwrap1 span').add('#unwrap2 span:first').unwrap().length, 3, 'make #unwrap1 and #unwrap2 go away' );
 	same( jQuery('#unwrap > span').get(), abcd, 'all four spans should still exist' );
 
 	same( jQuery('#unwrap3 span').unwrap().get(), jQuery('#unwrap3 > span').get(), 'make all b in #unwrap3 go away' );

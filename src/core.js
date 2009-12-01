@@ -29,10 +29,10 @@ var jQuery = function( selector, context ) {
 	rnotwhite = /\S/,
 
 	// Used for trimming whitespace
-	rtrim = /^\s+|\s+$/g,
+	rtrim = /(\s|\u00A0)+|(\s|\u00A0)+$/g,
 
 	// Match a standalone tag
-	rsingleTag = /<(\w+)\s*\/?>(?:<\/\1>)?$/,
+	rsingleTag = /^<(\w+)\s*\/?>(?:<\/\1>)?$/,
 
 	// Keep a UserAgent string for use with jQuery.browser
 	userAgent = navigator.userAgent.toLowerCase(),

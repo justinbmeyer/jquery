@@ -600,16 +600,18 @@ jQuery.each({
 
 	event.special[orig] = {
 		setup:function() {
-			if ( this.addEventListener )
+			if ( this.addEventListener ) {
 				this.addEventListener( orig, handle, true );
-			else
+			} else {
 				event.add( this, fix, ieHandler );
+			}
 		}, 
 		teardown:function() { 
-			if ( this.removeEventListener )
+			if ( this.removeEventListener ) {
 				this.removeEventListener( orig, handle, true );
-			else
+			} else {
 				event.remove( this, fix, ieHandler );
+			}
 		}
 	};
 });
@@ -914,7 +916,7 @@ jQuery.extend({
 var readyBound = false;
 
 function bindReady() {
-	if ( readyBound ) return;
+	if ( readyBound ) { return; }
 	readyBound = true;
 
 	// Catch cases where $(document).ready() is called after the
@@ -951,23 +953,25 @@ function bindReady() {
 			toplevel = window.frameElement == null;
 		} catch(e){}
 
-		if ( document.documentElement.doScroll && toplevel ) (function() {
-			if ( jQuery.isReady ) {
-				return;
-			}
+		if ( document.documentElement.doScroll && toplevel ) {
+			(function() {
+				if ( jQuery.isReady ) {
+					return;
+				}
 
-			try {
-				// If IE is used, use the trick by Diego Perini
-				// http://javascript.nwbox.com/IEContentLoaded/
-				document.documentElement.doScroll("left");
-			} catch( error ) {
-				setTimeout( arguments.callee, 0 );
-				return;
-			}
+				try {
+					// If IE is used, use the trick by Diego Perini
+					// http://javascript.nwbox.com/IEContentLoaded/
+					document.documentElement.doScroll("left");
+				} catch( error ) {
+					setTimeout( arguments.callee, 0 );
+					return;
+				}
 
-			// and execute any waiting functions
-			jQuery.ready();
-		})();
+				// and execute any waiting functions
+				jQuery.ready();
+			})();
+		}
 	}
 
 	// A fallback to window.onload, that will always work
