@@ -819,7 +819,101 @@ test(".live()/.die()", function() {
 	
 	jQuery('span#liveSpan1').die('click');
 });
-
+test("live with change", function(){
+	if(jQuery.support.changeBubbles){
+		return;
+	}
+	var selectChange = 0, checkboxChange = 0;
+	
+	var select = jQuery("select[name='S1']")
+	select.live("change",function() {
+		selectChange++;
+	})
+	
+	var checkbox = jQuery("#check2"), 
+		checkboxFunction = function(){
+			checkboxChange++;
+		}
+	checkbox.live("change", checkboxFunction)
+	
+	//test click on select
+	
+	//first click sets data
+	select.trigger("click");
+	select[0].selectedIndex = select[0].selectedIndex ? 0 : 1;
+	//second click that changed it
+	select.trigger("click");
+	equals( selectChange, 1, "Change on click." );
+	
+	//test keys on select
+	
+	select[0].selectedIndex = select[0].selectedIndex ? 0 : 1;
+	select.trigger("keyup");
+	equals( selectChange, 2, "Change on keyup." );
+	
+	//test click on checkbox
+	
+	checkbox.trigger("click")
+	equals( checkboxChange, 1, "Change on checkbox." );
+	
+	//test before activate on radio
+	
+	//test blur /focus on textarea
+	
+	var textarea = jQuery("#area1"), textareaChange = 0, oldVal = textarea.val();
+	textarea.live("change",function() {
+		textareaChange++;
+	})
+	textarea.trigger("focus")
+	textarea.val(oldVal+"foo")
+	textarea.trigger("blur")
+	equals( textareaChange, 1, "Change on textarea." );
+	textarea.val(oldVal)
+	textarea.die("change")
+	
+	//test blur/focus on text
+	
+	var text = jQuery("#name"), textChange = 0, oldTextVal = text.val();
+	text.live("change",function() {
+		textChange++;
+	})
+	text.trigger("focus")
+	text.val(oldVal+"foo")
+	text.trigger("blur")
+	equals( textChange, 1, "Change on text input." );
+	text.val(oldTextVal)
+	text.die("change")
+	
+	//test blur/focus on password
+	
+	var password = jQuery("#name"), passwordChange = 0, oldPasswordVal = password.val();
+	password.live("change",function() {
+		passwordChange++;
+	})
+	password.trigger("focus")
+	password.val(oldPasswordVal+"foo")
+	password.trigger("blur")
+	equals( passwordChange, 1, "Change on password input." );
+	password.val(oldPasswordVal)
+	password.die("change")
+	
+	//make sure die works
+	
+	//die all changes
+	select.die("change")
+	select[0].selectedIndex = select[0].selectedIndex ? 0 : 1;
+	select.trigger("click");
+	equals( selectChange, 2, "Die on click works." );
+	select[0].selectedIndex = select[0].selectedIndex ? 0 : 1;
+	select.trigger("keyup");
+	equals( selectChange, 2, "Die on keyup works." );
+	
+	//die specific checkbox
+	checkbox.die("change", checkboxFunction)
+	checkbox.trigger("click")
+	equals( checkboxChange, 1, "Die on checkbox." );
+	
+})
 test("live with submit", function() {
 	var count1 = 0, count2 = 0;
 	

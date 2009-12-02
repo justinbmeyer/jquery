@@ -72,7 +72,7 @@ jQuery.event = {
 				// Check for a special event handler
 				// Only use addEventListener/attachEvent if the special
 				// events handler returns false
-				if ( !special.setup || special.setup.call( elem, data, namespaces ) === false ) {
+				if ( !special.setup || special.setup.call( elem, data, namespaces, handler) === false ) {
 					// Bind the global event handler to the element
 					if ( elem.addEventListener ) {
 						elem.addEventListener( type, handle, false );
@@ -135,7 +135,8 @@ jQuery.event = {
 					var namespaces = type.split(".");
 					type = namespaces.shift();
 					var all = !namespaces.length,
-						namespace = new RegExp("(^|\\.)" + namespaces.slice(0).sort().join("\\.(?:.*\\.)?") + "(\\.|$)"),
+						cleaned = jQuery.map( namespaces.slice(0).sort() , function(nm){ return nm.replace(/[^\w\s\.\|`]/g, function(ch){return "\\"+ch  }) }),
+						namespace = new RegExp("(^|\\.)" + cleaned.join("\\.(?:.*\\.)?") + "(\\.|$)"),
 						special = this.special[ type ] || {};
 
 					if ( events[ type ] ) {
@@ -407,16 +408,10 @@ jQuery.event = {
 		live: {
 			add: function( proxy, data, namespaces, live ) {
 				jQuery.extend( proxy, data || {} );
-				if( data.live === "submit" && !jQuery.support.submitBubbles ) { 
-					jQuery.event.special.live.special[data.live].apply(this,arguments) 
-					proxy.guid += data.selector + data.live; 
-				} else if(data.live === "change" && !jQuery.support.changeBubbles) {
-                    jQuery.event.special.live.special[data.live].apply(this,arguments) 
-					proxy.guid += data.selector + data.live; 
-                } else { 
-					proxy.guid += data.selector + data.live; 
-					jQuery.event.add( this, data.live, liveHandler, data ); 
-				}    
+
+				proxy.guid += data.selector + data.live; 
+				jQuery.event.add( this, data.live, liveHandler, data ); 
+				
 			},
 
 			remove: function( namespaces ) {
@@ -557,29 +552,33 @@ jQuery.each({
 (function() {
 	//submit delegation
 	var event = jQuery.event,
-		special = event.special.live.special, 
-		handle  = event.handle, 
-		beforeFilter = { 
-			click: function(e) { 
-				return jQuery(e.target).is(":submit, :image").length ;
-			}, 
-			keypress : function(e) { 
-				return jQuery(e.target).is(":text, :password").length && e.keyCode === 13 ;
-			} 
-		}; 
-		special.submit = function(proxy, data, namespaces, live ) { 
-			data.beforeFilter = beforeFilter ;
-			proxy.altLive = ["click","keypress"] ;
-			proxy.altLiveGUIDs = { 
-				click:    proxy.guid + data.selector + "special.click", 
-				keypress: proxy.guid + data.selector + "special.keypress" 
-			};
-			jQuery.event.add( this, "click", liveHandler, data ); 
-			live[proxy.altLiveGUIDs.click] = true; 
-			jQuery.event.add( this, "keypress", liveHandler, data ); 
-			live[proxy.altLiveGUIDs.keypress] = true; 
+		handle  = event.handle;
+		event.special.submit = {
+			setup : function(data, namespaces, fn){
+				if( !jQuery.support.submitBubbles && this.nodeName.toUpperCase() != 'form' ) {
+					event.add(this, 'click.specialSubmit.'+fn.guid, function(e, eventData) {
+						var t = jQuery(e.target)
+						if( t.is(":submit, :image") && t.closest("form").length ) {
+							e.type = "submit";
+							return handle.apply( this, arguments );
+						}
+					});
+	 
+					event.add(this, 'keypress.specialSubmit.'+fn.guid, function( e, eventData ) {
+						var t = jQuery(e.target)
+						if( t.is(":text, :password") && t.closest("form").length && e.keyCode === 13) {
+							e.type = "submit";
+							return handle.apply( this, arguments );
+						}
+					});
+				}
+				return false;
+			},
+			remove : function(namespaces, fn) {
+				event.remove(this, 'click.specialSubmit'+(fn ? "."+fn.guid : ""));
+				event.remove(this, 'keypress.specialSubmit'+(fn ? "."+fn.guid : ""));
+			}
 		}
-	
 })();
 
 
@@ -760,78 +759,93 @@ jQuery.fn.extend({
 (function() {
 	//change delegation, happens here so we have bind.
 	
-    var event = jQuery.event,
-		special = event.special.live.special, 
-		handle  = event.handle, 
-        onloadCalled = false,
-		beforeFilter = { 
-            change : function() {
-              return true;  
-            },
-            click: function(e) { 
-				var el = e.target, d;
-                switch(el.nodeName.toLowerCase()){
-                    case "select":
-                        if(typeof el.selectedIndex === 'undefined') {
-                            return false;
-                        }
-                        d = jQuery.data(el, "_change_data")
-                        jQuery.data(el, "_change_data", el.selectedIndex.toString())
-                        return d != null && d !== el.selectedIndex.toString();
-                     case "input":
-                         if(el.type.toLowerCase() =="checkbox" ) return true;
-                         return false;
-                     
-                }
-                return false;
-			}, 
-			keyup: function(e) { 
-				var el = e.target;
-                if(el.nodeName.toLowerCase() !== "select") return false;
-                if(typeof el.selectedIndex   === 'undefined') return false;
-                var d = jQuery.data(el, "_change_data");
-                jQuery.data(el, "_change_data", el.selectedIndex.toString())
-                return d != null && d !== el.selectedIndex.toString();
+	var event = jQuery.event,
+		handle  = event.handle;
+		event.special.change = {
+			filters : {
+				click: function(e) { 
+					var el = e.target, d;
+					switch( el.nodeName.toLowerCase() ) {
+						case "select":
+							if( typeof el.selectedIndex !== 'undefined' ) {
+								d = jQuery.data(el, "_change_data")
+								jQuery.data(el, "_change_data", el.selectedIndex.toString())
+								if( d != null && d !== el.selectedIndex.toString() ) {
+									e.type = "change";
+									return handle.apply(this, arguments);
+								}
+							}
+							break;
+						 case "input":
+							 if( el.type.toLowerCase() =="checkbox" ) {
+								 e.type = "change";
+								 return handle.apply( this, arguments );
+							 }
+							 break;
+					}
+				}, 
+				keyup: function(e) { 
+					var el = e.target;
+					if( el.nodeName.toLowerCase() === "select" 
+						&& typeof el.selectedIndex   !== 'undefined' ) {
+						var d = jQuery.data(el, "_change_data");
+						jQuery.data(el, "_change_data", el.selectedIndex.toString())
+						if( d != null && d !== el.selectedIndex.toString() ) {
+							e.type = "change";
+							return handle.apply( this, arguments );
+						}
+					}
+				},
+				beforeactivate: function(e) {
+					var el = e.target;
+					if( el.nodeName.toLowerCase() === 'input' 
+						&& el.type.toLowerCase() === "radio" 
+						&& !el.checked
+						&& onloadCalled ) {
+						e.type = "change";
+						return handle.apply( this, arguments );
+					}
+				},
+				blur: function(e) {
+					var el = e.target, 
+						nodeName = el.nodeName.toLowerCase();
+					if( ( nodeName === "textarea" || (nodeName === "input" && (el.type === 'text' || el.type === "password" ) ) )
+						&& jQuery.data(el, "_change_data") !== el.value ) {
+						e.type = "change";
+						return handle.apply( this, arguments );
+					}
+				},
+				focus: function(e) {
+					var el = e.target, 
+						nodeName = el.nodeName.toLowerCase();
+					if(nodeName === "textarea" || (nodeName === "input" && (el.type === 'text' || el.type === "password" ) ) ) {
+						jQuery.data(el, "_change_data", el.value);
+					}
+				}
 			},
-            beforeactivate: function(e) {
-                var el = e.target;
-                return el.nodeName.toLowerCase() === 'input' 
-                    && el.type.toLowerCase() === "radio" 
-                    && !el.checked
-                    && onloadCalled
-            },
-            blur: function(e){
-                var el = e.target, 
-                    nodeName = el.nodeName.toLowerCase();
-                if(nodeName === "textarea" || (nodeName === "input" && el.type == 'text')) {
-                    return jQuery.data(el, "_change_data") !== el.value;
-                }
-                return false;
-            },
-            focus: function(e){
-                var el = e.target, 
-                    nodeName = el.nodeName.toLowerCase();
-                if(nodeName === "textarea" || (nodeName === "input" && el.type == 'text')) {
-                    jQuery.data(el, "_change_data", el.value);
-                }
-                return false;
-            }
+			setup : function(data, namespaces, fn){
+				//return false if we bubble
+				if( !jQuery.support.changeBubbles ) {
+					var filters = event.special.change.filters
+					for( var eventName in filters ) {
+						event.add(this, eventName+'.specialChange.'+fn.guid, filters[eventName] );
+					}
+				}
+				return false; //always want to listen for change for trigger
+			},
+			remove : function(namespaces, fn){
+				if( !jQuery.support.changeBubbles ) {
+					var filters = event.special.change.filters
+					for( var eventName in filters ){
+						event.remove(this, eventName+'.specialChange'+(fn ? "."+fn.guid : ""), filters[eventName] );
+					}
+				}
+			}
 		}
-		special.change = function(proxy, data, namespaces, live ) { 
-			data.beforeFilter = beforeFilter ;
-			proxy.altLive = [];
-            proxy.altLiveGUIDs = {};
-            var el = this;
-            $.each(beforeFilter, function(eventType,f ) {
-                proxy.altLive.push(eventType);
-                proxy.altLiveGUIDs[eventType] = proxy.guid + data.selector + "special."+eventType;
-                jQuery.event.add( el, eventType, liveHandler, data );
-                live[proxy.altLiveGUIDs[eventType]] = true; 
-            })
-		}
-	    jQuery(window).bind("load",function(){
-            onloadCalled = true;
-        })
+		jQuery(window).bind("load",function() {
+			onloadCalled = true;
+		})
+
 })();
 
 
@@ -878,7 +892,9 @@ function liveHandler( event ) {
 }
 
 function liveConvert( type, selector ) {
-	return ["live", type, selector.replace(/\./g, "`").replace(/ /g, "|")].join(".");
+	return ["live", type, selector//.replace(/[^\w\s\.]/g, function(ch){ return "\\"+ch})
+								  .replace(/\./g, "`")
+								  .replace(/ /g, "|")].join(".");
 }
 
 jQuery.extend({
