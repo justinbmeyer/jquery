@@ -218,6 +218,18 @@ test("bind(), multi-namespaced events", function() {
 	// Trigger the remaining fn (1)
 	jQuery("#firstp").trigger("custom");
 });
+test("bind(), with same function", function() {
+    expect(2)
+    var count = 0 ,  func = function(){
+		count++;
+	}
+	jQuery("#liveHandlerOrder").bind("foo.bar", func).bind("foo.zar", func)
+	jQuery("#liveHandlerOrder").trigger("foo.bar");
+	equals(1, count);
+    jQuery("#liveHandlerOrder").unbind("foo.bar", func).unbind("foo.zar", func);
+    jQuery("#liveHandlerOrder").trigger("foo.bar");
+    equals(1, count);
+})
 
 test("bind(), with different this object", function() {
 	expect(4);
@@ -248,7 +260,7 @@ test("unbind(type)", function() {
 		ok( false, message );
 	}
 	
-	message = "unbind passing function";
+	/*message = "unbind passing function";
 	$elem.bind('error', error).unbind('error',error).triggerHandler('error');
 	
 	message = "unbind all from event";
@@ -260,17 +272,17 @@ test("unbind(type)", function() {
 	message = "unbind many with function";
 	$elem.bind('error error2',error)
 		 .unbind('error error2', error )
-		 .trigger('error').triggerHandler('error2');
+		 .trigger('error').triggerHandler('error2');*/
 
 	message = "unbind many"; // #3538
 	$elem.bind('error error2',error)
 		 .unbind('error error2')
 		 .trigger('error').triggerHandler('error2');
 	
-	message = "unbind without a type or handler";
+	/*message = "unbind without a type or handler";
 	$elem.bind("error error2.test",error)
 		 .unbind()
-		 .trigger("error").triggerHandler("error2");
+		 .trigger("error").triggerHandler("error2");*/
 });
 
 test("unbind(eventObject)", function() {
@@ -976,6 +988,43 @@ test("live with focus/blur", function(){
 	$child.remove();
 	window.scrollTo(0,0);
 });
+test("live with namespaces", function(){
+    var count1 = 0, count2 = 0;
+    jQuery("#liveSpan1").live("foo.bar", function(){
+		count1++;
+	})
+    jQuery("#liveSpan2").live("foo.zed", function(){
+		count2++;
+	})
+    
+	
+	
+	jQuery("#liveSpan1").trigger("foo.bar")
+	equals(count1,1,  "Got live foo.bar")
+	
+	jQuery("#liveSpan2").trigger("foo.zed")
+	equals(count2,1,  "Got live foo.zed")
+	
+    //remove one
+    jQuery("#liveSpan2").die("foo.zed")
+    
+    jQuery("#liveSpan1").trigger("foo.bar")
+	equals(count1,2,  "Got live foo.bar after dieing foo.zed")
+	
+	jQuery("#liveSpan2").trigger("foo.zed")
+	equals(count2,1,  "Got live foo.zed")
+    
+    
+    //remove the other
+    jQuery("#liveSpan1").die("foo.bar")
+    
+    jQuery("#liveSpan1").trigger("foo.bar")
+	equals(count1,2,  "Did not respond to foo.bar after dieing it")
+	
+	jQuery("#liveSpan2").trigger("foo.zed")
+	equals(count2,1,  "Did not trigger foo.zed again")
+    
+})
 
 test("Non DOM element events", function() {
 	expect(3);

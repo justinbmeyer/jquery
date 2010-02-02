@@ -22,7 +22,9 @@ jQuery.event = {
 		if ( !handler.guid ) {
 			handler.guid = this.guid++;
 		}
-
+		if( !handler.types ){
+			handler.types = [];
+		}
 		// if data is passed, bind to handler
 		if ( data !== undefined ) {
 			// Create temporary function pointer to original handler
@@ -33,6 +35,7 @@ jQuery.event = {
 
 			// Store data in unique handler
 			handler.data = data;
+			handler.types = fn.types;
 		}
 
 		// Init the element's event structure
@@ -57,8 +60,11 @@ jQuery.event = {
 			// Namespaced event handlers
 			var namespaces = type.split(".");
 			type = namespaces.shift();
-			handler.type = namespaces.slice(0).sort().join(".");
-
+			var remainder = namespaces.slice(0).sort().join(".");
+			if( jQuery.inArray(remainder, handler.types) == -1){
+				handler.types.push(remainder)
+			}
+			
 			// Get the current list of functions bound to this event
 			var handlers = events[ type ],
 				special = this.special[ type ] || {};
@@ -86,6 +92,7 @@ jQuery.event = {
 				var modifiedHandler = special.add.call( elem, handler, data, namespaces, handlers ); 
 				if ( modifiedHandler && jQuery.isFunction( modifiedHandler ) ) { 
 					modifiedHandler.guid = modifiedHandler.guid || handler.guid; 
+					modifiedHandler.types = modifiedHandler.types || handler.handler.types;
 					handler = modifiedHandler; 
 				} 
 			} 
@@ -149,9 +156,20 @@ jQuery.event = {
 						} else {
 							for ( var handle in events[ type ] ) {
 								// Handle the removal of namespaced events
-								if ( all || namespace.test( events[ type ][ handle ].type ) ) {
+								//check the types, remove if no more
+								var etypes = events[ type ][ handle ].types;
+								var j =0;
+								while(j < etypes.length){
+									if ( namespace.test( etypes[j] ) ) {
+										etypes.splice(j, 1)
+									}else{
+										j++;
+									}
+								}
+								if( all || !etypes.length ) {
 									delete events[ type ][ handle ];
 								}
+
 							}
 						}
 
@@ -290,20 +308,28 @@ jQuery.event = {
 
 		// Namespaced event handlers
 		var namespaces = event.type.split(".");
-		event.type = namespaces.shift();
+		var type = namespaces.shift();
 
 		// Cache this now, all = true means, any handler
 		all = !namespaces.length && !event.exclusive;
 
 		var namespace = new RegExp("(^|\\.)" + namespaces.slice(0).sort().join("\\.(?:.*\\.)?") + "(\\.|$)");
 
-		handlers = ( jQuery.data(this, "events") || {} )[ event.type ];
+		handlers = ( jQuery.data(this, "events") || {} )[ type ];
 
 		for ( var j in handlers ) {
-			var handler = handlers[ j ];
-
+			var handler = handlers[ j ],
+				hasType = false;
+			if(handler.types){
+				for( var k=0; k < handler.types.length; k++ ){
+					if( namespace.test(handler.types[k]) ){
+						hasType = true;
+						break;
+					}
+				}
+			}
 			// Filter the functions by class
-			if ( all || namespace.test(handler.type) ) {
+			if ( all || hasType ) {
 				// Pass in a reference to the handler function itself
 				// So that we can later remove it
 				event.handler = handler;
@@ -419,7 +445,7 @@ jQuery.event = {
 					var remove = 0, name = new RegExp("(^|\\.)" + namespaces[0] + "(\\.|$)");
 
 					jQuery.each( (jQuery.data(this, "events").live || {}), function() {
-						if ( name.test(this.type) ) {
+						if ( name.test(this.types[0]) ) {
 							remove++;
 						}
 					});
